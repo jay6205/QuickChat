@@ -11,7 +11,19 @@ const port = process.env.PORT || 4000;
 
 // Initialize socket.io server
 export const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: (origin, callback) => {
+      // allow non-browser requests (no origin)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS error: Origin ${origin} not allowed by CORS`), false);
+    },
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
   credentials: true
 })
 
@@ -69,10 +81,19 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Date', 'Connection'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'Origin', 'Accept', 'X-Requested-With'],
     optionsSuccessStatus: 204,
   })
 );
+
+app.options('*', cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS error: Origin ${origin} not allowed by CORS`), false);
+  },
+  credentials: true
+}));
 
 // user routes
 import userRouter from './routes/user.routes.js';
