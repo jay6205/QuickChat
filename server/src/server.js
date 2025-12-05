@@ -86,14 +86,6 @@ app.use(
   })
 );
 
-app.options('/*', cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS error: Origin ${origin} not allowed by CORS`), false);
-  },
-  credentials: true
-}));
 
 // user routes
 import userRouter from './routes/user.routes.js';
