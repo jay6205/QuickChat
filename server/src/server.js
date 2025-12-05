@@ -9,18 +9,33 @@ const app = express();
 export const server = http.createServer(app)
 const port = process.env.PORT || 4000;
 
+// CORS Configuration Logic
+const rawOrigins = process.env.CORS_ORIGIN || 'http://localhost:5173';
+const allowedOrigins = rawOrigins
+  .split(',')
+  .map((o) => o.trim().replace(/^['"]|['"]$/g, '')) // Remove quotes if present
+  .filter(Boolean);
+
+const allowAll = allowedOrigins.includes('*');
+
+const corsOriginCheck = (origin, callback) => {
+  // allow requests with no origin (like curl, Postman, server-to-server)
+  if (!origin) return callback(null, true);
+
+  if (allowAll || allowedOrigins.includes(origin)) {
+    return callback(null, true);
+  } else {
+    return callback(
+      new Error(`CORS error: Origin ${origin} not allowed by CORS`),
+      false
+    );
+  }
+};
+
 // Initialize socket.io server
 export const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      // allow non-browser requests (no origin)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error(`CORS error: Origin ${origin} not allowed by CORS`), false);
-    },
+    origin: corsOriginCheck,
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -58,27 +73,9 @@ app.use(express.static('public'));
 app.use(cookieParser());
 
 // cors configurations
-const rawOrigins = process.env.CORS_ORIGIN || 'http://localhost:5173';
-const allowedOrigins = rawOrigins
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // allow requests with no origin (like curl, Postman, server-to-server)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(
-          new Error(`CORS error: Origin ${origin} not allowed by CORS`),
-          false
-        );
-      }
-    },
+    origin: corsOriginCheck,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Authorization', 'Content-Type', 'Origin', 'Accept', 'X-Requested-With'],
